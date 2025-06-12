@@ -1,0 +1,21 @@
+{
+  "monitoring": {
+    "startDate": "06/28/2025",
+    "endDate": "07/01/2025",
+    "priceThreshold": 225,
+    "checkIntervalMinutes": 15
+  },
+  "exclusions": {
+    "hotelCodes": ["YLMH", "YLRL"],
+    "suffixes": [":RV"]
+  },
+  "api": {
+    "baseUrl": "https://webapi.xanterra.net/v1/api/availability/hotels/yellowstonenationalparklodges",
+    "timeout": 5000,
+    "userAgent": "Yellowstone-Hotel-Monitor/1.0.0"
+  },
+  "notifications": {
+    "console": true,
+    "discordWebhook": ""
+  }
+} 

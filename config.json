@@ -16,6 +16,6 @@
   },
   "notifications": {
     "console": true,
-    "discordWebhook": ""
+    "discordWebhook": "https://discord.com/api/webhooks/1382846949656367178/HXONAz4MyC2DmWXCFFsZ_7y5LgRpuLMLHlXLwEzhHFDQtDQnl4Bp6UfeRspwFNaGLWl6"
   }
 } 

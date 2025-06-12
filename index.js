@@ -1,3 +1,4 @@
+require('dotenv').config();
 const axios = require('axios');
 const cron = require('node-cron');
 const fs = require('fs');
@@ -224,9 +225,9 @@ class YellowstoneHotelMonitor {
                 }
             };
 
-            await axios.post(this.config.notifications.discordWebhook, {
-                embeds: [embed]
-            });
+            const payload = { embeds: [embed] };
+
+            await axios.post(this.config.notifications.discordWebhook, payload);
             console.log('💬 Discord alert sent successfully!');
         } catch (error) {
             console.error('❌ Discord webhook error:', error.message);
@@ -423,25 +424,44 @@ Time: ${new Date().toLocaleString()}`;
         process.stdout.write(`⏰ Next check in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} (at ${nextCheckFormatted})`);
     }
 
+    async sendStartupNotification() {
+        const now = new Date();
+        const localTime = now.toLocaleString();
+        const message = `**🏨 Yellowstone Hotel Price Monitor Started**
+The monitor is now running and will check prices every ${this.config.monitoring.checkIntervalMinutes} minutes.
+
+📅 Monitoring Dates: ${this.config.monitoring.startDate} to ${this.config.monitoring.endDate}
+💰 Price Threshold: $${this.config.monitoring.priceThreshold}
+⏰ Local Time: ${localTime}`;
+
+        await this.sendDiscordAlert(message, 'info');
+    }
 
     /**
      * Start the monitoring service
      */
     async start() {
-        console.log('🚀 Starting Yellowstone Hotel Price Monitor...');
+        console.log('🏨 Yellowstone Hotel Price Monitor initialized');
+        console.log(`📅 Monitoring dates: ${this.config.monitoring.startDate}, ${this.config.monitoring.endDate}`);
+        console.log(`💰 Alert threshold: $${this.config.monitoring.priceThreshold}`);
+        console.log(`🚫 Excluded hotels: ${this.config.exclusions.hotelCodes.join(', ')}, and hotels ending with ${this.config.exclusions.suffixes.join(', ')}`);
         
-        // Run initial check
-        this.runCheck();
+        // Send startup notification
+        await this.sendStartupNotification();
+        
+        console.log('🚀 Starting Yellowstone Hotel Price Monitor...');
+        console.log(`⏰ Monitor scheduled to run every ${this.config.monitoring.checkIntervalMinutes} minutes`);
+        console.log('Press Ctrl+C to stop monitoring\n');
 
-        // Schedule checks based on config
+        // Initial check
+        await this.runCheck();
+
+        // Schedule regular checks
         const cronPattern = `*/${this.config.monitoring.checkIntervalMinutes} * * * *`;
         cron.schedule(cronPattern, () => {
             console.log(''); // New line before starting check
             this.runCheck();
         });
-
-        console.log(`⏰ Monitor scheduled to run every ${this.config.monitoring.checkIntervalMinutes} minutes`);
-        console.log('Press Ctrl+C to stop monitoring\n');
     }
 
     /**

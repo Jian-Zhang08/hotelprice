@@ -330,7 +330,7 @@ Time: ${new Date().toLocaleString()}`;
         }
 
         console.log('═'.repeat(60));
-        console.log(`✅ Check cycle completed at ${new Date().toLocaleString()}`);
+        console.log(`✅ Check cycle completed at ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })}`);
         
         // Set next check time
         this.setNextCheckTime();

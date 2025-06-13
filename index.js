@@ -157,45 +157,7 @@ class YellowstoneHotelMonitor {
         return null;
     }
 
-    /**
-     * Queue a Discord notification
-     * @param {string} message - Message to send
-     * @param {string} type - Type of notification (info, alert, error)
-     */
-    queueDiscordNotification(message, type = 'info') {
-        this.discordQueue.push({ message, type });
-        if (!this.isProcessingDiscordQueue) {
-            this.processDiscordQueue();
-        }
-    }
 
-    /**
-     * Process the Discord notification queue with rate limiting
-     */
-    async processDiscordQueue() {
-        if (this.isProcessingDiscordQueue || this.discordQueue.length === 0) {
-            return;
-        }
-
-        this.isProcessingDiscordQueue = true;
-
-        while (this.discordQueue.length > 0) {
-            const now = Date.now();
-            const timeSinceLastNotification = now - this.lastDiscordNotification;
-            
-            if (timeSinceLastNotification < this.discordRateLimit) {
-                await new Promise(resolve => 
-                    setTimeout(resolve, this.discordRateLimit - timeSinceLastNotification)
-                );
-            }
-
-            const { message, type } = this.discordQueue.shift();
-            await this.sendDiscordAlert(message, type);
-            this.lastDiscordNotification = Date.now();
-        }
-
-        this.isProcessingDiscordQueue = false;
-    }
 
     /**
      * Send Discord webhook notification

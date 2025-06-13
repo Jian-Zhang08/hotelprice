@@ -268,7 +268,7 @@ class YellowstoneHotelMonitor {
                     // Only send notification if price is below special threshold
                     if (minPrice < specialPriceThreshold) {
                         const alertMessage = `**SPECIAL PRICE ALERT!** 🚨\nHotel: ${hotelCode}\nDate: ${date}\nPrice: $${minPrice}\nStatus: Below $${specialPriceThreshold} threshold!\nTime: ${new Date().toLocaleString()}`;
-                        this.queueDiscordNotification(alertMessage, 'alert');
+                        this.sendDiscordAlert(alertMessage, 'alert');
                         console.log(`🚨 SPECIAL ALERT! ${hotelCode} on ${date}: $${minPrice} (below $${specialPriceThreshold} threshold)`);
                     }
                 }

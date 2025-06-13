@@ -118,9 +118,10 @@ class YellowstoneHotelMonitor {
      * @param {number} maxRetries - Maximum number of retry attempts
      * @returns {Promise<Object|null>} Availability data or null if error
      */
-    async fetchAvailability(startDate, maxRetries = 3) {
+    async fetchAvailability(startDate, maxRetries = 5) {
         const encodedDate = this.formatDateForUrl(startDate);
-        const url = `${this.baseUrl}?date=${encodedDate}&limit=1&is_group=false`;
+        // const url = `${this.baseUrl}?date=${encodedDate}&limit=1&is_group=false`;
+        const url ="https://webapi.xanterra.net/v1/api/availability/hotels/yellowstonenationalparklodges?date=06%2F28%2F2025&limit=31&is_group=false";
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {

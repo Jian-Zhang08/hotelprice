@@ -305,7 +305,7 @@ class YellowstoneHotelMonitor {
                     const savings = previousPrice - minPrice;
                     console.log(`📉 Price drop detected! ${hotelCode} on ${date}: $${previousPrice} → $${minPrice} (saved $${savings.toFixed(2)})`);
                     const dropMessage = `**Price Drop Alert!** 📉\nHotel: ${hotelCode}\nDate: ${date}\nOld Price: $${previousPrice}\nNew Price: $${minPrice}\nSavings: $${savings.toFixed(2)}\nTime: ${new Date().toLocaleString()}`;
-                    this.sendAlert(hotelCode, date, minPrice, maxPrice);
+                    this.sendDiscordAlert(dropMessage, 'alert');
                 }
 
                 console.log(`📊 ${hotelCode} on ${date}: $${minPrice} - $${maxPrice}`);

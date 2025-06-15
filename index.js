@@ -18,6 +18,7 @@ class YellowstoneHotelMonitor {
         }
         
         this.baseUrl = this.config.api.baseUrl;
+        this.toursBaseUrl = this.config.api.toursBaseUrl || "https://webapi.xanterra.net/v1/api/availability/tours/yellowstonenationalparklodges";
         this.priceThreshold = this.config.monitoring.priceThreshold;
         this.excludedHotels = this.config.exclusions.hotelCodes;
         this.excludedSuffixes = this.config.exclusions.suffixes;
@@ -25,7 +26,10 @@ class YellowstoneHotelMonitor {
             this.config.monitoring.startDate, 
             this.config.monitoring.endDate
         );
+        this.tourMonitoringDates = this.config.monitoring.tourDates || ["06/30/2025", "07/01/2025"];
+        this.monitoredTourCode = this.config.monitoring.tourCode || "YLACT-SW1";
         this.previousPrices = new Map();
+        this.previousTourAvailability = new Map();
         this.nextCheckTime = null;
         this.countdownInterval = null;
         
@@ -37,6 +41,8 @@ class YellowstoneHotelMonitor {
         
         console.log('🏨 Yellowstone Hotel Price Monitor initialized');
         console.log(`📅 Monitoring dates: ${this.dateRange.join(', ')}`);
+        console.log(`🎫 Tour monitoring dates: ${this.tourMonitoringDates.join(', ')}`);
+        console.log(`🎯 Monitored tour: ${this.monitoredTourCode}`);
         console.log(`💰 Alert threshold: $${this.priceThreshold}`);
         console.log(`🚫 Excluded hotels: ${this.excludedHotels.join(', ')}, and hotels ending with ${this.excludedSuffixes.join(', ')}`);
     }
@@ -158,7 +164,50 @@ class YellowstoneHotelMonitor {
         return null;
     }
 
-
+    /**
+     * Fetch tour availability data
+     * @param {string} date - Date in MM/DD/YYYY format
+     * @param {number} maxRetries - Maximum number of retry attempts
+     * @returns {Promise<Object|null>} Tour availability data or null if error
+     */
+    async fetchTourAvailability(date, maxRetries = 5) {
+        const encodedDate = this.formatDateForUrl(date);
+        const url = `${this.toursBaseUrl}?date=${encodedDate}&limit=1`;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🎫 Fetching tour data for ${date} (attempt ${attempt}/${maxRetries})...`);
+                
+                const response = await axios.get(url, {
+                    timeout: this.config.api.timeout,
+                    headers: {
+                        'User-Agent': this.config.api.userAgent
+                    }
+                });
+                
+                console.log(`✅ Tour data fetched successfully for ${date} on attempt ${attempt}`);
+                return response.data;
+                
+            } catch (error) {
+                const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+                const isLastAttempt = attempt === maxRetries;
+                
+                if (isTimeout && !isLastAttempt) {
+                    const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+                    console.log(`⏱️  Tour timeout on attempt ${attempt}/${maxRetries}, retrying in ${waitTime/1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                } else {
+                    console.error(`❌ Error fetching tour availability data (attempt ${attempt}/${maxRetries}):`, error.message);
+                    if (isLastAttempt) {
+                        console.log(`🚫 All ${maxRetries} tour attempts failed for ${date}`);
+                        return null;
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
 
     /**
      * Send Discord webhook notification
@@ -200,6 +249,114 @@ class YellowstoneHotelMonitor {
                 this.discordQueue.unshift({ message, type });
             }
         }
+    }
+
+    /**
+     * Process tour data and check for availability alerts
+     * @param {Object} tourData - Raw tour availability data from API
+     * @param {string} date - Date being processed
+     */
+    processTourData(tourData, date) {
+        if (!tourData?.availability?.[date]) {
+            console.log(`⚠️  No tour availability data found for ${date}`);
+            return;
+        }
+
+        const tours = tourData.availability[date];
+        
+        // Check for the specific tour code
+        if (tours[this.monitoredTourCode]) {
+            const tour = tours[this.monitoredTourCode];
+            const available = tour.available || 0;
+            const status = tour.status || 'UNKNOWN';
+            
+            // Create unique key for tracking previous state
+            const tourKey = `${this.monitoredTourCode}-${date}`;
+            const previousQuantityStatus = this.previousTourAvailability.get(tourKey);
+            
+            console.log(`🎫 ${this.monitoredTourCode} on ${date}: ${available} available (Status: ${status})`);
+            
+            // Check if tour is available and has options
+            if (available > 0 && status === 'OPEN' && tour.options) {
+                // Check quantities in options
+                const optionsWithQuantity = [];
+                let hasQuantityAboveOne = false;
+                
+                Object.entries(tour.options).forEach(([optionCode, optionData]) => {
+                    const quantity = optionData.quantity || 0;
+                    console.log(`  📋 Option ${optionCode}: quantity=${quantity}`);
+                    
+                    if (quantity > 1) {
+                        hasQuantityAboveOne = true;
+                        optionsWithQuantity.push({
+                            code: optionCode,
+                            quantity: quantity,
+                            pickup: optionData.pickup || {},
+                            status: optionData.status || 'UNKNOWN'
+                        });
+                    }
+                });
+                
+                // Store current status (whether we have quantity > 1)
+                this.previousTourAvailability.set(tourKey, hasQuantityAboveOne);
+                
+                // Send alert if we have quantity > 1 and this is a new occurrence
+                if (hasQuantityAboveOne && !previousQuantityStatus) {
+                    console.log(`🚨 TOUR ALERT! ${this.monitoredTourCode} on ${date}: Options with quantity > 1 available!`);
+                    this.sendTourAlert(this.monitoredTourCode, date, available, status, optionsWithQuantity);
+                }
+            } else {
+                // Store current status as false if no valid options
+                this.previousTourAvailability.set(tourKey, false);
+                
+                if (available === 0) {
+                    console.log(`  ❌ No availability for ${this.monitoredTourCode} on ${date}`);
+                } else if (status !== 'OPEN') {
+                    console.log(`  ⚠️  ${this.monitoredTourCode} status is ${status} on ${date}`);
+                } else if (!tour.options) {
+                    console.log(`  ⚠️  No options data for ${this.monitoredTourCode} on ${date}`);
+                }
+            }
+        } else {
+            console.log(`⚠️  Tour code ${this.monitoredTourCode} not found for ${date}`);
+        }
+    }
+
+    /**
+     * Send tour availability alert notification
+     * @param {string} tourCode - Tour code
+     * @param {string} date - Date
+     * @param {number} available - Number of available spots
+     * @param {string} status - Tour status
+     * @param {Array} optionsWithQuantity - Array of options with quantity > 1
+     */
+    async sendTourAlert(tourCode, date, available, status, optionsWithQuantity = []) {
+        let optionsText = '';
+        if (optionsWithQuantity.length > 0) {
+            optionsText = '\n\n**Available Options:**\n';
+            optionsWithQuantity.forEach(option => {
+                const pickupName = option.pickup && Object.values(option.pickup)[0]?.name || 'Unknown Location';
+                const startTime = option.pickup && Object.values(option.pickup)[0]?.startTime || 'Unknown Time';
+                optionsText += `• ${option.code}: ${option.quantity} spots (${pickupName} - ${startTime})\n`;
+            });
+        }
+
+        const alertMessage = `**🎫 Tour Availability Alert!** 🚨
+Tour: ${tourCode}
+Date: ${date}
+Total Available: ${available}
+Status: ${status}${optionsText}
+Time: ${new Date().toLocaleString()}
+
+The tour you're monitoring now has options with quantity > 1 available for booking!`;
+        
+        // Console notification
+        if (this.config.notifications.console) {
+            console.log(alertMessage);
+        }
+
+        // Discord notification
+        await this.sendDiscordAlert(alertMessage, 'alert');
     }
 
     /**
@@ -325,9 +482,22 @@ Time: ${new Date().toLocaleString()}`;
             } else {
                 console.log('❌ No availability data received');
             }
+
+            // Check tour availability for monitored dates
+            console.log('\n🎫 Checking tour availability...');
+            for (const date of this.tourMonitoringDates) {
+                console.log(`🎯 Processing tour data for ${date}...`);
+                const tourData = await this.fetchTourAvailability(date);
+                
+                if (tourData && tourData.availability) {
+                    this.processTourData(tourData, date);
+                } else {
+                    console.log(`❌ No tour data received for ${date}`);
+                }
+            }
             
         } catch (error) {
-            console.error(`❌ Error fetching availability data:`, error.message);
+            console.error(`❌ Error during check cycle:`, error.message);
         }
 
         console.log('═'.repeat(60));
@@ -393,7 +563,9 @@ Time: ${new Date().toLocaleString()}`;
         const message = `**🏨 Yellowstone Hotel Price Monitor Started**
 The monitor is now running and will check prices every ${this.config.monitoring.checkIntervalMinutes} minutes.
 
-📅 Monitoring Dates: ${this.config.monitoring.startDate} to ${this.config.monitoring.endDate}
+📅 Hotel Monitoring Dates: ${this.config.monitoring.startDate} to ${this.config.monitoring.endDate}
+🎫 Tour Monitoring Dates: ${this.tourMonitoringDates.join(', ')}
+🎯 Monitored Tour: ${this.monitoredTourCode}
 💰 Price Threshold: $${this.config.monitoring.priceThreshold}
 ⏰ Local Time: ${localTime}`;
 
@@ -406,6 +578,8 @@ The monitor is now running and will check prices every ${this.config.monitoring.
     async start() {
         console.log('🏨 Yellowstone Hotel Price Monitor initialized');
         console.log(`📅 Monitoring dates: ${this.config.monitoring.startDate}, ${this.config.monitoring.endDate}`);
+        console.log(`🎫 Tour monitoring dates: ${this.tourMonitoringDates.join(', ')}`);
+        console.log(`🎯 Monitored tour: ${this.monitoredTourCode}`);
         console.log(`💰 Alert threshold: $${this.config.monitoring.priceThreshold}`);
         console.log(`🚫 Excluded hotels: ${this.config.exclusions.hotelCodes.join(', ')}, and hotels ending with ${this.config.exclusions.suffixes.join(', ')}`);
         

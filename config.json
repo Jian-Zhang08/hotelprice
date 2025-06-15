@@ -3,7 +3,9 @@
     "startDate": "06/28/2025",
     "endDate": "07/01/2025",
     "priceThreshold": 225,
-    "checkIntervalMinutes": 15
+    "checkIntervalMinutes": 15,
+    "tourDates": ["06/30/2025", "07/01/2025"],
+    "tourCode": "YLACT-SW1"
   },
   "exclusions": {
     "hotelCodes": ["YLMH", "YLRL"],
@@ -11,6 +13,7 @@
   },
   "api": {
     "baseUrl": "https://webapi.xanterra.net/v1/api/availability/hotels/yellowstonenationalparklodges",
+    "toursBaseUrl": "https://webapi.xanterra.net/v1/api/availability/tours/yellowstonenationalparklodges",
     "timeout": 5000,
     "userAgent": "Yellowstone-Hotel-Monitor/1.0.0"
   },

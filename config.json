@@ -2,13 +2,13 @@
   "monitoring": {
     "startDate": "06/28/2025",
     "endDate": "07/01/2025",
-    "priceThreshold": 225,
+    "priceThreshold": 200,
     "checkIntervalMinutes": 15,
     "tourDates": ["06/30/2025", "07/01/2025"],
     "tourCode": "YLACT-SW1"
   },
   "exclusions": {
-    "hotelCodes": ["YLMH", "YLRL"],
+    "hotelCodes": ["YLMH", "YLRL","YLLL", "YLRL"],
     "suffixes": [":RV"]
   },
   "api": {

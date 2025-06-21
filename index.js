@@ -375,7 +375,7 @@ The tour you're monitoring now has options with quantity > 1 available for booki
 
         // Special check for YLRL on 06/29/2025
         const isSpecialDate = date === '06/29/2025';
-        const specialHotelCode = 'YLRL';
+        const specialHotelCode = 'YLzL';
         const specialPriceThreshold = 200;
 
         Object.entries(hotels).forEach(async ([hotelCode, hotelData]) => {

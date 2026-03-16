@@ -5,7 +5,6 @@ However, cancellations happen frequently. When someone cancels their trip, a roo
 
 Yellowstone Hotel Price Monitor automates the tedious process of refreshing booking pages. By checking every 30 minutes, it catches these sudden vacancies and price drops instantly, allowing you to book a prime location inside the park without the year-long wait.
 
-A Node.js application that monitors hotel prices at Yellowstone National Park and sends alerts when prices drop below $200.
 
 ## Features
 

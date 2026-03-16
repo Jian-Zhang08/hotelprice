@@ -1,4 +1,9 @@
 # Yellowstone Hotel Price Monitor
+Booking a stay inside Yellowstone National Park is notoriously difficult. Standard rooms are typically fully booked 6 to 12 months in advance, leaving many travelers with no options or stuck with expensive lodging outside the park.
+
+However, cancellations happen frequently. When someone cancels their trip, a room becomes available for a short window—often just a few days or a week before the stay date. These "last-minute" openings are the best chance to grab a room at a fair price, but they disappear in minutes.
+
+Yellowstone Hotel Price Monitor automates the tedious process of refreshing booking pages. By checking every 30 minutes, it catches these sudden vacancies and price drops instantly, allowing you to book a prime location inside the park without the year-long wait.
 
 A Node.js application that monitors hotel prices at Yellowstone National Park and sends alerts when prices drop below $200.
 

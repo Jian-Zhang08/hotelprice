@@ -2,11 +2,12 @@ require('dotenv').config();
 const axios = require('axios');
 const cron = require('node-cron');
 const fs = require('fs');
-
+//adding support for another national park
 /**
  * Hotel Price Monitor for Yellowstone National Park
  * Monitors hotel availability and prices, alerting when prices drop below threshold
  */
+const park="yellowstone"
 class YellowstoneHotelMonitor {
     constructor() {
         // Load configuration

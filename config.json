@@ -19,5 +19,8 @@
   },
   "notifications": {
     "console": true
+  },
+  "channel":{
+    "whatsapp":""
   }
 } 

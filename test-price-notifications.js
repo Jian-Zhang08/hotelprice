@@ -35,7 +35,19 @@ async function testPriceNotifications() {
                 date: '06/30/2025',
                 minPrice: 180.00,
                 maxPrice: 180.00
-            }
+            },
+            {
+                hotelCode: 'YLGV',
+                date: '06/29/2025',
+                minPrice: 228.89,
+                maxPrice: 228.89
+            },
+            {
+                hotelCode: 'YLCL',
+                date: '06/29/2025',
+                minPrice: 358.89,
+                maxPrice: 358.89
+            },
         ];
 
         for (const test of testData) {
